@@ -82,35 +82,42 @@ def scale(intermediate_layer_output, rmax=1, rmin=0):
 def update_coverage(input_data, model, model_layer_dict, threshold=0):
     layer_names = [layer.name for layer in model.layers if
                    'flatten' not in layer.name and 'input' not in layer.name]
-
+    cov = {}
+    #print input_data
     intermediate_layer_model = Model(inputs=model.input,
                                      outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
     intermediate_layer_outputs = intermediate_layer_model.predict(input_data)
+#    print intermediate_layer_outputs
 
     for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
+#        print "i:", i, "len:", np.shape(intermediate_layer_output[0])
+#        print intermediate_layer_output[0]
         scaled = scale(intermediate_layer_output[0])
+        
+        # print i, scaled
         for num_neuron in xrange(scaled.shape[-1]):
+            cov['l' + str(i) + 'n' + str(num_neuron)]= np.mean(scaled[..., num_neuron])
             if np.mean(scaled[..., num_neuron]) > threshold and not model_layer_dict[(layer_names[i], num_neuron)]:
                 model_layer_dict[(layer_names[i], num_neuron)] = True
+    return cov
+
+# def full_coverage(model_layer_dict):
+#     if False in model_layer_dict.values():
+#         return False
+#     return True
 
 
-def full_coverage(model_layer_dict):
-    if False in model_layer_dict.values():
-        return False
-    return True
+# def fired(model, layer_name, index, input_data, threshold=0):
+#     intermediate_layer_model = Model(inputs=model.input, outputs=model.get_layer(layer_name).output)
+#     intermediate_layer_output = intermediate_layer_model.predict(input_data)[0]
+#     scaled = scale(intermediate_layer_output)
+#     if np.mean(scaled[..., index]) > threshold:
+#         return True
+#     return False
 
 
-def fired(model, layer_name, index, input_data, threshold=0):
-    intermediate_layer_model = Model(inputs=model.input, outputs=model.get_layer(layer_name).output)
-    intermediate_layer_output = intermediate_layer_model.predict(input_data)[0]
-    scaled = scale(intermediate_layer_output)
-    if np.mean(scaled[..., index]) > threshold:
-        return True
-    return False
-
-
-def diverged(predictions1, predictions2, predictions3, target):
-    #     if predictions2 == predictions3 == target and predictions1 != target:
-    if not predictions1 == predictions2 == predictions3:
-        return True
-    return False
+# def diverged(predictions1, predictions2, predictions3, target):
+#     #     if predictions2 == predictions3 == target and predictions1 != target:
+#     if not predictions1 == predictions2 == predictions3:
+#         return True
+#     return False
