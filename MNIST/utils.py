@@ -80,6 +80,25 @@ def update_coverage(input_data, model, model_layer_dict, threshold=0):
     layer_names = [layer.name for layer in model.layers if
                    'flatten' not in layer.name and 'input' not in layer.name]
 
+    cov = {}
+    # print input_data
+    intermediate_layer_model = Model(inputs=model.input,
+                                     outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
+    intermediate_layer_outputs = intermediate_layer_model.predict(input_data)
+    #    print intermediate_layer_outputs
+
+    for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
+        #        print "i:", i, "len:", np.shape(intermediate_layer_output[0])
+        #        print intermediate_layer_output[0]
+        scaled = scale(intermediate_layer_output[0])
+
+        # print i, scaled
+        for num_neuron in xrange(scaled.shape[-1]):
+            cov['l' + str(i) + 'n' + str(num_neuron)] = np.mean(scaled[..., num_neuron])
+            if np.mean(scaled[..., num_neuron]) > threshold and not model_layer_dict[(layer_names[i], num_neuron)]:
+                model_layer_dict[(layer_names[i], num_neuron)] = True
+    return cov
+    ## ORIGINAL
     intermediate_layer_model = Model(inputs=model.input,
                                      outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
     intermediate_layer_outputs = intermediate_layer_model.predict(input_data)
